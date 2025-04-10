@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capture Image</title>
+  <style>
+    /* CSS Styles */
+    body {
+      font-family: 'Lato', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f5f5f5;
+    }
+
+    .modal {
+      width: 450px;
+      max-width: 450px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    .modal-header {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .video-container {
+      border: 1px solid black;
+      height: 300px;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    img {
+      width: 100%;
+      height: auto;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .button-cancel {
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .button-primary {
+      background: #007bff;
+      color: white;
+    }
+
+    .button-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #007bff;
+      color: white;
+    }
+
+    .error-message {
+      color: red;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="modal">
+    <div class="modal-header">Capture Image</div>
+    <div class="video-container" id="video-container">
+      <video id="video" autoplay playsinline muted></video>
+      <img id="captured-image" style="display: none;" />
+    </div>
+    <div class="error-message" id="error-message"></div>
+    <div class="buttons">
+      <button class="button-cancel" onclick="handleCloseDialog()">Cancel</button>
+      <button class="button-primary" id="capture-button" onclick="handleCaptureImage()">Capture</button>
+      <button class="button-icon" id="toggle-camera-button" onclick="toggleCamera()">
+        &#x21bb; <!-- Flip Camera Icon -->
+      </button>
+    </div>
+    <canvas id="canvas" style="display: none;"></canvas>
+  </div>
+
+  <script>
+    // JavaScript Logic
+    let video = document.getElementById('video');
+    let canvas = document.getElementById('canvas');
+    let capturedImage = document.getElementById('captured-image');
+    let errorMessage = document.getElementById('error-message');
+    let facingMode = 'user'; // Default to front camera
+
+    async function startCamera() {
+      try {
+        errorMessage.textContent = '';
+        const constraints = {
+          video: { facingMode: facingMode }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        errorMessage.textContent = 'Error accessing camera. Please allow camera permissions.';
+      }
+    }
+
+    function stopCamera() {
+      const stream = video.srcObject;
+      if (stream) {
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+        video.srcObject = null;
+      }
+    }
+
+    function handleCaptureImage() {
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      if (facingMode === 'user') {
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1); // Flip horizontally for front camera
+      }
+
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      if (facingMode === 'user') {
+        context.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
+      }
+
+      const imageData = canvas.toDataURL('image/png');
+      capturedImage.src = imageData;
+      capturedImage.style.display = 'block';
+      video.style.display = 'none';
+      stopCamera();
+    }
+
+    function handleCloseDialog() {
+      stopCamera();
+      alert('Dialog closed');
+    }
+
+    function toggleCamera() {
+      facingMode = facingMode === 'user' ? 'environment' : 'user';
+      stopCamera();
+      startCamera();
+    }
+
+    // Initialize the camera on page load
+    startCamera();
+  </script>
+</body>
+</html>
